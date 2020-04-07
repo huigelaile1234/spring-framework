@@ -75,10 +75,33 @@ public class StandardEnvironment extends AbstractEnvironment {
 	 */
 	@Override
 	protected void customizePropertySources(MutablePropertySources propertySources) {
-		propertySources.addLast(
-				new PropertiesPropertySource(SYSTEM_PROPERTIES_PROPERTY_SOURCE_NAME, getSystemProperties()));
-		propertySources.addLast(
-				new SystemEnvironmentPropertySource(SYSTEM_ENVIRONMENT_PROPERTY_SOURCE_NAME, getSystemEnvironment()));
+		// 构建environment最终到了这里
+		// 获取系统配置,例如下面的配置
+//		"java.runtime.name" -> "Java(TM) SE Runtime Environment"
+//		"spring.output.ansi.enabled" -> "always"
+//		"sun.boot.library.path" -> "D:\Java\jdk1.8.0_231\jre\bin"
+//		"java.vm.version" -> "25.231-b11"
+//		"java.vm.vendor" -> "Oracle Corporation"
+//		"java.vendor.url" -> "http://java.oracle.com/"
+//		"java.rmi.server.randomIDs" -> "true"
+//		"path.separator" -> ";"
+//		"java.vm.name" -> "Java HotSpot(TM) 64-Bit Server VM"
+//		"file.encoding.pkg" -> "sun.io"
+		propertySources.addLast(new PropertiesPropertySource(SYSTEM_PROPERTIES_PROPERTY_SOURCE_NAME, getSystemProperties()));
+
+		// 获取系统环境配置,例如下面的配置
+//		"LOCALAPPDATA" -> "C:\Users\chinadep\AppData\Local"
+//		"PROCESSOR_LEVEL" -> "6"
+//		"FP_NO_HOST_CHECK" -> "NO"
+//		"USERDOMAIN" -> "chinadep-PC"
+//		"LOGONSERVER" -> "\\CHINADEP-PC"
+//		"JAVA_HOME" -> "D:\Java\jdk1.8.0_231"
+//		"SESSIONNAME" -> "Console"
+//		"ALLUSERSPROFILE" -> "C:\ProgramData"
+//		"PROCESSOR_ARCHITECTURE" -> "AMD64"
+//		"GRADLE_HOME" -> "D:\Java\Software\gradle-4.8.1"
+//		"PSModulePath" -> "C:\windows\system32\WindowsPowerShell\v1.0\Modules\"
+		propertySources.addLast(new SystemEnvironmentPropertySource(SYSTEM_ENVIRONMENT_PROPERTY_SOURCE_NAME, getSystemEnvironment()));
 	}
 
 }

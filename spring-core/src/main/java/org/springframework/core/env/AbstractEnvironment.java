@@ -119,8 +119,12 @@ public abstract class AbstractEnvironment implements ConfigurableEnvironment {
 	 * allow subclasses to contribute or manipulate {@link PropertySource} instances as
 	 * appropriate.
 	 * @see #customizePropertySources(MutablePropertySources)
+	 * @see org.springframework.web.context.support.StandardServletEnvironment#customizePropertySources
 	 */
 	public AbstractEnvironment() {
+		// getOrCreateEnvironment()进入这里
+		// propertySources还是null，因为environment还没有创建出来
+		// 回调子类StandardServletEnvironment的customizePropertySources()
 		customizePropertySources(this.propertySources);
 	}
 
@@ -533,6 +537,12 @@ public abstract class AbstractEnvironment implements ConfigurableEnvironment {
 		return this.propertyResolver.containsProperty(key);
 	}
 
+	/**
+	 * @Description environment.getProperty()，用来获取property配置
+	 * @Date 13:57 2020/4/3
+	 * @Param [key]
+	 * @return java.lang.String
+	 **/
 	@Override
 	@Nullable
 	public String getProperty(String key) {
