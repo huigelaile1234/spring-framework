@@ -180,9 +180,9 @@ public abstract class WebApplicationContextUtils {
 	 * @param beanFactory the BeanFactory to configure
 	 * @param sc the ServletContext that we're running within
 	 */
-	public static void registerWebApplicationScopes(ConfigurableListableBeanFactory beanFactory,
-			@Nullable ServletContext sc) {
+	public static void registerWebApplicationScopes(ConfigurableListableBeanFactory beanFactory, @Nullable ServletContext sc) {
 
+		// 注册作用域，request，session，application
 		beanFactory.registerScope(WebApplicationContext.SCOPE_REQUEST, new RequestScope());
 		beanFactory.registerScope(WebApplicationContext.SCOPE_SESSION, new SessionScope());
 		if (sc != null) {
@@ -192,6 +192,7 @@ public abstract class WebApplicationContextUtils {
 			sc.setAttribute(ServletContextScope.class.getName(), appScope);
 		}
 
+		// 注册一些依赖
 		beanFactory.registerResolvableDependency(ServletRequest.class, new RequestObjectFactory());
 		beanFactory.registerResolvableDependency(ServletResponse.class, new ResponseObjectFactory());
 		beanFactory.registerResolvableDependency(HttpSession.class, new SessionObjectFactory());

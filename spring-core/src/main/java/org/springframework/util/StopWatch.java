@@ -49,11 +49,13 @@ public class StopWatch {
 	 */
 	private final String id;
 
+	// 是否需要记录每次任务执行的信息
 	private boolean keepTaskList = true;
 
+	// 保存任务的集合
 	private final List<TaskInfo> taskList = new LinkedList<>();
 
-	/** Start time of the current task. */
+	// 任务开始的时间
 	private long startTimeMillis;
 
 	/** Name of the current task. */

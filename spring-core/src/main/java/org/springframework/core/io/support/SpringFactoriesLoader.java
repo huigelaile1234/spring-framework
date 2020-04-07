@@ -119,25 +119,41 @@ public final class SpringFactoriesLoader {
 	 */
 	public static List<String> loadFactoryNames(Class<?> factoryClass, @Nullable ClassLoader classLoader) {
 		String factoryClassName = factoryClass.getName();
+		// ......
 		return loadSpringFactories(classLoader).getOrDefault(factoryClassName, Collections.emptyList());
 	}
 
+	/**
+	* @Description 获取spring.factories中的配置
+	* @Date 15:19 2020/4/5
+	* @Param [classLoader]
+	* @return Map<String,List<String>>
+	**/
 	private static Map<String, List<String>> loadSpringFactories(@Nullable ClassLoader classLoader) {
 		MultiValueMap<String, String> result = cache.get(classLoader);
 		if (result != null) {
 			return result;
 		}
 
+		// 加载所有spring.factories文件，包含SpringBoot内置的和开发人员自定义的factories文件
+		// 将这些配置转换为Properties对象
+		// 遍历Properties，将对应的value加载MultiValueMap中
+		// 将MultiValueMap放入Cache中，Cache同样是map结构，key为类加载器
+
 		try {
+			// FACTORIES_RESOURCE_LOCATION 		META-INF/spring.factories
 			Enumeration<URL> urls = (classLoader != null ?
 					classLoader.getResources(FACTORIES_RESOURCE_LOCATION) :
 					ClassLoader.getSystemResources(FACTORIES_RESOURCE_LOCATION));
+
 			result = new LinkedMultiValueMap<>();
+
 			while (urls.hasMoreElements()) {
 				URL url = urls.nextElement();
 				UrlResource resource = new UrlResource(url);
 				Properties properties = PropertiesLoaderUtils.loadProperties(resource);
 				for (Map.Entry<?, ?> entry : properties.entrySet()) {
+
 					String factoryClassName = ((String) entry.getKey()).trim();
 					for (String factoryName : StringUtils.commaDelimitedListToStringArray((String) entry.getValue())) {
 						result.add(factoryClassName, factoryName.trim());

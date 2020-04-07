@@ -518,7 +518,6 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader
 	}
 
 	/**
-	 * @Author liguohui
 	 * @Description 刷新Spring容器，通过synchronized加锁
 	 * @Date 14:51 2020/4/2
 	 * @Param []
@@ -528,12 +527,12 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader
 	public void refresh() throws BeansException, IllegalStateException {
 		synchronized (this.startupShutdownMonitor) {
 			// 1、为刷新上下文之前做的准备
-			// 容器状态设置
+			// 容器状态设置,active=true
 			// 初始化属性配置
-			// 检查必备属性是否存在
+			// 检查必填属性是否存在，可以通过下面的方式设置：
 			// 我们可以通过系统初始化器将容器中设置环境变量
 			// 例如设置environment.setRequiredProperties("abc");
-			// 然后再application.yml中设置abc=test，就可以将这个属性设置到SpringBoot容器
+			// 然后application.yml中设置abc=test，就可以将这个属性设置到SpringBoot容器
 			prepareRefresh();
 
 			// 2、获取BeanFactory
@@ -541,20 +540,24 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader
 			//返回默认的DefaultListableBeanFactory
 			ConfigurableListableBeanFactory beanFactory = obtainFreshBeanFactory();
 
-			// 3、为了后续context使用而对bean factory做的一些准备
-			// 设置 beanFactory一些属性，详情进入方法查看
+			// 3、为了后续context使用而对beanFactory做的一些准备
+			// 设置 beanFactory一些属性
+			// 添加post processor
+			// 设置忽略的自动装配接口
+			// 注册一些组件
 			prepareBeanFactory(beanFactory);
 
 			try {
 				// 4、子类重写以在BeanFactory完成创建后做进一步设置
-				// 注册web的作用域和组件
+				// 跳到 AnnotationConfigServletWebServerApplicationContext.postProcessBeanFactory
+				// 当前为web环境，所以会注册web的作用域和组件
 				postProcessBeanFactory(beanFactory);
 
 				// 5、调用BeanDefinitionRegistryPostProcessor实现向容器内添加bean的定义
 				// 调用BeanFactoryPostProcessor实现向容器内bean的定义添加属性
 				invokeBeanFactoryPostProcessors(beanFactory);
 
-				// 6、册PostProcessors，拦截bean的创建
+				// 6、注册PostProcessors，拦截bean的创建
 				// 找到BeanPostProcessor的实现
 				// 排序后注册进容器内
 				registerBeanPostProcessors(beanFactory);
@@ -566,14 +569,16 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader
 				// 8、初始化事件广播器，注册到容器中
 				initApplicationEventMulticaster();
 
-				// 9、交给子类实现，构建一个web容器，Tomcat/jetty等
+				// 9、交给子类实现，在web环境下，onRefresh()只是构建一个web容器，Tomcat/jetty等
+				// 进入 ServletWebServerApplicationContext.onRefresh()
 				onRefresh();
 
-				// 10、将容器内事件监听器添加到事件广播器中
-				// 派发早期事件
+				// 10、将earlyEventsToProcess中事件监听器添加到事件广播器中
+				// 广播早期事件
 				registerListeners();
 
 				// 11、初始化所有剩下的singleton bean
+				// -------------------------------------------bean实例化流程在这里-------------------------------------------
 				finishBeanFactoryInitialization(beanFactory);
 
 				// 12、初始化生命周期处理器
@@ -612,7 +617,7 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader
 	 * active flag as well as performing any initialization of property sources.
 	 */
 	protected void prepareRefresh() {
-		// Switch to active.
+		// Switch to active.当前容器的启动时间，设置容器状态为active状态
 		this.startupDate = System.currentTimeMillis();
 		this.closed.set(false);
 		this.active.set(true);
@@ -626,10 +631,12 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader
 			}
 		}
 
-		// 初始化servletContext和servletConfig资源配置
+		// 初始化servletContext和servletConfig资源配置，走到 GenericWebApplicationContext.initPropertySources()
 		initPropertySources();
 
-		// 验证配置是否符合
+		// 验证必须的属性配置是否存在，如果不存在就会报错
+		// 例如通过系统初始化器设置必备属性，environment.setRequiredProperties("mooc");
+		// 这时候需要在application.yml中设置mooc: abc，如果不设置mooc对应的value，系统就被报错
 		getEnvironment().validateRequiredProperties();
 
 		// Store pre-refresh ApplicationListeners...
@@ -663,8 +670,9 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader
 	 * @see #getBeanFactory()
 	 */
 	protected ConfigurableListableBeanFactory obtainFreshBeanFactory() {
-		//跳到GenericApplicationContext
+		//跳到 GenericApplicationContext
 		//将refreshed设置为true，并设置序列化ID，默认是application
+		// 跳到 GenericApplicationContext.refreshBeanFactory()
 		refreshBeanFactory();
 		//返回默认的DefaultListableBeanFactory
 		return getBeanFactory();
@@ -701,7 +709,8 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader
 		// 再添加一个bean post Processor
 		beanFactory.addBeanPostProcessor(new ApplicationListenerDetector(this));
 
-		// Detect a LoadTimeWeaver and prepare for weaving, if found.
+		// Detect a loadTimeWeaver and prepare for weaving, if found.
+		// 检测是否包含loadTimeWeaver，准备编织
 		if (beanFactory.containsBean(LOAD_TIME_WEAVER_BEAN_NAME)) {
 			beanFactory.addBeanPostProcessor(new LoadTimeWeaverAwareProcessor(beanFactory));
 			// Set a temporary ClassLoader for type matching.
@@ -738,6 +747,14 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader
 	 */
 	protected void invokeBeanFactoryPostProcessors(ConfigurableListableBeanFactory beanFactory) {
 
+		// getBeanFactoryPostProcessors()有3种，系统初始化器和监听器都会设置post processor
+		// invokeBeanFactoryPostProcessors()保证处理完beanfactory中BeanDefinitionRegistryPostProcessor实现
+
+//		invokeBeanFactoryPostProcessors(registryProcessors, beanFactory);
+//		invokeBeanFactoryPostProcessors(regularPostProcessors, beanFactory);
+
+		// 调用BeanDefinitionRegistryPostProcessor实现向容器内添加bean的定义
+		// 调用BeanFactoryPostProcessor实现向容器内bean的定义添加属性
 		PostProcessorRegistrationDelegate.invokeBeanFactoryPostProcessors(beanFactory, getBeanFactoryPostProcessors());
 
 		// Detect a LoadTimeWeaver and prepare for weaving, if found in the meantime
@@ -798,12 +815,10 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader
 	 * Uses SimpleApplicationEventMulticaster if none defined in the context.
 	 * @see org.springframework.context.event.SimpleApplicationEventMulticaster
 	 */
-	protected void initApplicationEventMulticaster() {
-		ConfigurableListableBeanFactory beanFactory = getBeanFactory();
+	protected void initApplicationEventMulticaster() {ConfigurableListableBeanFactory beanFactory = getBeanFactory();
 		//判断当前BeanFactory是否包含广播器的实现
 		if (beanFactory.containsLocalBean(APPLICATION_EVENT_MULTICASTER_BEAN_NAME)) {
-			this.applicationEventMulticaster =
-					beanFactory.getBean(APPLICATION_EVENT_MULTICASTER_BEAN_NAME, ApplicationEventMulticaster.class);
+			this.applicationEventMulticaster = beanFactory.getBean(APPLICATION_EVENT_MULTICASTER_BEAN_NAME, ApplicationEventMulticaster.class);
 			if (logger.isTraceEnabled()) {
 				logger.trace("Using ApplicationEventMulticaster [" + this.applicationEventMulticaster + "]");
 			}
@@ -888,11 +903,11 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader
 	 * initializing all remaining singleton beans.
 	 */
 	protected void finishBeanFactoryInitialization(ConfigurableListableBeanFactory beanFactory) {
+
 		// Initialize conversion service for this context.
-		if (beanFactory.containsBean(CONVERSION_SERVICE_BEAN_NAME) &&
-				beanFactory.isTypeMatch(CONVERSION_SERVICE_BEAN_NAME, ConversionService.class)) {
-			beanFactory.setConversionService(
-					beanFactory.getBean(CONVERSION_SERVICE_BEAN_NAME, ConversionService.class));
+		if (beanFactory.containsBean(CONVERSION_SERVICE_BEAN_NAME) && beanFactory.isTypeMatch(CONVERSION_SERVICE_BEAN_NAME, ConversionService.class)) {
+
+			beanFactory.setConversionService(beanFactory.getBean(CONVERSION_SERVICE_BEAN_NAME, ConversionService.class));
 		}
 
 		// Register a default embedded value resolver if no bean post-processor
@@ -903,7 +918,9 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader
 		}
 
 		// Initialize LoadTimeWeaverAware beans early to allow for registering their transformers early.
+		// 这里是aop中做weaver的bean，这里一般都是空的
 		String[] weaverAwareNames = beanFactory.getBeanNamesForType(LoadTimeWeaverAware.class, false, false);
+
 		for (String weaverAwareName : weaverAwareNames) {
 			getBean(weaverAwareName);
 		}
@@ -912,9 +929,13 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader
 		beanFactory.setTempClassLoader(null);
 
 		// Allow for caching all bean definition metadata, not expecting further changes.
+		// 在Springbean实例化过程中，不允许其他线程向beanFactory进行注册，this.configurationFrozen = true;
+		// 进入 DefaultListableBeanFactory.freezeConfiguration()
 		beanFactory.freezeConfiguration();
 
 		// Instantiate all remaining (non-lazy-init) singletons.
+		// 将singleton bean进行实例化
+		// 进入 DefaultListableBeanFactory.preInstantiateSingletons()
 		beanFactory.preInstantiateSingletons();
 	}
 

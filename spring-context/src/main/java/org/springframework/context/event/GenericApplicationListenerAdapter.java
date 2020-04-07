@@ -53,8 +53,13 @@ public class GenericApplicationListenerAdapter implements GenericApplicationList
 	 */
 	@SuppressWarnings("unchecked")
 	public GenericApplicationListenerAdapter(ApplicationListener<?> delegate) {
+
+
 		Assert.notNull(delegate, "Delegate listener must not be null");
+
 		this.delegate = (ApplicationListener<ApplicationEvent>) delegate;
+
+		// 获取listener感兴趣的事件类型
 		this.declaredEventType = resolveDeclaredEventType(this.delegate);
 	}
 
@@ -67,9 +72,14 @@ public class GenericApplicationListenerAdapter implements GenericApplicationList
 	@Override
 	@SuppressWarnings("unchecked")
 	public boolean supportsEventType(ResolvableType eventType) {
+
 		if (this.delegate instanceof SmartApplicationListener) {
+
 			Class<? extends ApplicationEvent> eventClass = (Class<? extends ApplicationEvent>) eventType.resolve();
+			// 回调到org/springframework/boot/context/config/ConfigFileApplicationListener.java:157
+			// 判断监听的事件类
 			return (eventClass != null && ((SmartApplicationListener) this.delegate).supportsEventType(eventClass));
+
 		}
 		else {
 			return (this.declaredEventType == null || this.declaredEventType.isAssignableFrom(eventType));
@@ -83,8 +93,8 @@ public class GenericApplicationListenerAdapter implements GenericApplicationList
 
 	@Override
 	public boolean supportsSourceType(@Nullable Class<?> sourceType) {
-		return !(this.delegate instanceof SmartApplicationListener) ||
-				((SmartApplicationListener) this.delegate).supportsSourceType(sourceType);
+
+		return !(this.delegate instanceof SmartApplicationListener) || ((SmartApplicationListener) this.delegate).supportsSourceType(sourceType);
 	}
 
 	@Override
@@ -95,6 +105,7 @@ public class GenericApplicationListenerAdapter implements GenericApplicationList
 
 	@Nullable
 	private static ResolvableType resolveDeclaredEventType(ApplicationListener<ApplicationEvent> listener) {
+
 		ResolvableType declaredEventType = resolveDeclaredEventType(listener.getClass());
 		if (declaredEventType == null || declaredEventType.isAssignableFrom(ApplicationEvent.class)) {
 			Class<?> targetClass = AopUtils.getTargetClass(listener);
