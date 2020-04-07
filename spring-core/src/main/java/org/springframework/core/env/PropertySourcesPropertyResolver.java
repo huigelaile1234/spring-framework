@@ -74,8 +74,16 @@ public class PropertySourcesPropertyResolver extends AbstractPropertyResolver {
 		return getProperty(key, String.class, false);
 	}
 
+	/**
+	 * @Description 从Environment获取Property
+	 * @Date 10:56 2020/4/3
+	 * @Param [key, targetValueType, resolveNestedPlaceholders]
+	 * @return T
+	 **/
 	@Nullable
 	protected <T> T getProperty(String key, Class<T> targetValueType, boolean resolveNestedPlaceholders) {
+		// propertySources为property相关的源信息
+		// 遍历集合，获取每个property的value
 		if (this.propertySources != null) {
 			for (PropertySource<?> propertySource : this.propertySources) {
 				if (logger.isTraceEnabled()) {
